@@ -17,6 +17,12 @@ const (
 	minTokenFrequency = 2 // 仅从字典文件中读取大于等于此频率的分词
 )
 
+const (
+	wordAlpha = iota
+	wordNumber = iota
+	wordOther = iota
+)
+
 // 分词器结构体
 type Segmenter struct {
 	dict *Dictionary
@@ -252,33 +258,42 @@ func maxInt(a, b int) int {
 func splitTextToWords(text Text) []Text {
 	output := make([]Text, 0, len(text)/3)
 	current := 0
-	inAlphanumeric := true
-	alphanumericStart := 0
+	preWordType := wordAlpha
+	preWordStart := 0
 	for current < len(text) {
 		r, size := utf8.DecodeRune(text[current:])
-		if size <= 2 && (unicode.IsLetter(r) || unicode.IsNumber(r)) {
-			// 当前是拉丁字母或数字（非中日韩文字）
-			if !inAlphanumeric {
-				alphanumericStart = current
-				inAlphanumeric = true
-			}
-		} else {
-			if inAlphanumeric {
-				inAlphanumeric = false
-				if current != 0 {
-					output = append(output, toLower(text[alphanumericStart:current]))
-				}
-			}
-			output = append(output, text[current:current+size])
+
+		curWordType := wordOther
+		switch {
+		case size <= 2 && unicode.IsLetter(r):
+			curWordType = wordAlpha
+		case size <= 2 && unicode.IsNumber(r):
+			curWordType = wordNumber
 		}
+
+		if curWordType != preWordType || curWordType == wordOther {
+			if current != 0 {
+				word := text[preWordStart:current]
+				if preWordType == wordAlpha {
+					word = toLower(word)
+				}
+				output = append(output, word)
+			}
+
+			preWordType = curWordType
+			preWordStart = current
+		}
+
 		current += size
 	}
 
-	// 处理最后一个字元是英文的情况
-	if inAlphanumeric {
-		if current != 0 {
-			output = append(output, toLower(text[alphanumericStart:current]))
+	// 边界情况
+	if current != 0 {
+		word := text[preWordStart:current]
+		if preWordType == wordAlpha {
+			word = toLower(word)
 		}
+		output = append(output, word)
 	}
 
 	return output

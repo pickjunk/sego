@@ -33,6 +33,9 @@ func TestSplit(t *testing.T) {
 
 	expect(t, "je/ /suis/ /enchanté/ /de/ /cette/ /pièce/",
 		bytesToString(splitTextToWords([]byte("Je suis enchanté de cette pièce"))))
+
+	expect(t, "je/56/ /su/4904/is/ /1/enchanté/000/才/11/",
+		bytesToString(splitTextToWords([]byte("Je56 su4904is 1enchanté000才11"))))
 }
 
 func TestSegment(t *testing.T) {
