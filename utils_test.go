@@ -45,10 +45,8 @@ func TextSliceToString(b *testing.B) {
 }
 
 func Test_Benchmark(t *testing.T) {
-	fmt.Println("strings.Join:")
-	fmt.Println(testing.Benchmark(StringsJoin))
-	fmt.Println("textSliceToString")
-	fmt.Println(testing.Benchmark(TextSliceToString))
+	log.Info().Str("benchmark", fmt.Sprint(testing.Benchmark(StringsJoin))).Msg("strings.Join")
+	log.Info().Str("benchmark", fmt.Sprint(testing.Benchmark(TextSliceToString))).Msg("textSliceToString")
 }
 
 func Test_Token_TextEquals(t *testing.T) {

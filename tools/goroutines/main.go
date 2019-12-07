@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/pickjunk/sego"
-	"log"
 	"os"
 	"runtime"
 	"time"
@@ -37,7 +36,7 @@ func main() {
 	// 打开将要分词的文件
 	file, err := os.Open("../../testdata/bailuyuan.txt")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 	defer file.Close()
 
@@ -57,7 +56,7 @@ func main() {
 	for i := 0; i < numThreads; i++ {
 		go worker()
 	}
-	log.Print("开始分词")
+	log.Info().Msg("开始分词")
 
 	// 记录时间
 	t0 := time.Now()
@@ -77,6 +76,6 @@ func main() {
 
 	// 记录时间并计算分词速度
 	t1 := time.Now()
-	log.Printf("分词花费时间 %v", t1.Sub(t0))
-	log.Printf("分词速度 %f MB/s", float64(size*numRuns)/t1.Sub(t0).Seconds()/(1024*1024))
+	log.Info().Dur("dur", t1.Sub(t0)).Msg("分词花费时间")
+	log.Info().Msgf("分词速度 %f MB/s", float64(size*numRuns)/t1.Sub(t0).Seconds()/(1024*1024))
 }

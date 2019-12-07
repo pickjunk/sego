@@ -3,7 +3,6 @@ package sego
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"strconv"
@@ -49,11 +48,11 @@ func (seg *Segmenter) Dictionary() *Dictionary {
 func (seg *Segmenter) LoadDictionary(files string) {
 	seg.dict = NewDictionary()
 	for _, file := range strings.Split(files, ",") {
-		log.Printf("载入sego词典 %s", file)
+		log.Info().Str("file", file).Msg("载入词典")
 		dictFile, err := os.Open(file)
 		defer dictFile.Close()
 		if err != nil {
-			log.Fatalf("无法载入字典文件 \"%s\" \n", file)
+			log.Fatal().Str("file", file).Msg("无法载入词典文件")
 		}
 
 		reader := bufio.NewReader(dictFile)
@@ -127,7 +126,7 @@ func (seg *Segmenter) LoadDictionary(files string) {
 		}
 	}
 
-	log.Println("sego词典载入完毕")
+	log.Info().Msg("词典载入完毕")
 }
 
 // Segment 对文本分词

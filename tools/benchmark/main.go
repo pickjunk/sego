@@ -29,7 +29,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/pickjunk/sego"
-	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -58,13 +57,13 @@ func main() {
 
 	// 记录时间
 	t1 := time.Now()
-	log.Printf("载入词典花费时间 %v", t1.Sub(t0))
+	log.Info().Dur("dur", t1.Sub(t0)).Msg("载入词典花费时间")
 
 	// 写入内存profile文件
 	if *memprofile != "" {
 		f, err := os.Create(*memprofile)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
 		}
 		pprof.WriteHeapProfile(f)
 		defer f.Close()
@@ -73,7 +72,7 @@ func main() {
 	// 打开将要分词的文件
 	file, err := os.Open("../../testdata/bailuyuan.txt")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 	defer file.Close()
 
@@ -94,7 +93,7 @@ func main() {
 	if *output != "" {
 		of, err = os.Create(*output)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
 		}
 		defer of.Close()
 	}
@@ -106,7 +105,7 @@ func main() {
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err)
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
@@ -130,6 +129,6 @@ func main() {
 
 	// 记录时间并计算分词速度
 	t3 := time.Now()
-	log.Printf("分词花费时间 %v", t3.Sub(t2))
-	log.Printf("分词速度 %f MB/s", float64(size*numRuns)/t3.Sub(t2).Seconds()/(1024*1024))
+	log.Info().Msgf("分词花费时间 %v", t3.Sub(t2))
+	log.Info().Msgf("分词速度 %f MB/s", float64(size*numRuns)/t3.Sub(t2).Seconds()/(1024*1024))
 }

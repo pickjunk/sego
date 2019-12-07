@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"github.com/pickjunk/sego"
 	"io"
-	"log"
 	"net/http"
 	"runtime"
 )
@@ -41,16 +40,19 @@ var (
 	segmenter = sego.Segmenter{}
 )
 
-type JsonResponse struct {
+// JSONResponse struct
+type JSONResponse struct {
 	Segments []*Segment `json:"segments"`
 }
 
+// Segment struct
 type Segment struct {
 	Text string `json:"text"`
 	Pos  string `json:"pos"`
 }
 
-func JsonRpcServer(w http.ResponseWriter, req *http.Request) {
+// JSONRPCServer func
+func JSONRPCServer(w http.ResponseWriter, req *http.Request) {
 	// 得到要分词的文本
 	text := req.URL.Query().Get("text")
 	if text == "" {
@@ -65,7 +67,7 @@ func JsonRpcServer(w http.ResponseWriter, req *http.Request) {
 	for _, segment := range segments {
 		ss = append(ss, &Segment{Text: segment.Token().Text(), Pos: segment.Token().Pos()})
 	}
-	response, _ := json.Marshal(&JsonResponse{Segments: ss})
+	response, _ := json.Marshal(&JSONResponse{Segments: ss})
 
 	w.Header().Set("Content-Type", "application/json")
 	io.WriteString(w, string(response))
@@ -80,8 +82,8 @@ func main() {
 	// 初始化分词器
 	segmenter.LoadDictionary(*dict)
 
-	http.HandleFunc("/json", JsonRpcServer)
+	http.HandleFunc("/json", JSONRPCServer)
 	http.Handle("/", http.FileServer(http.Dir(*staticFolder)))
-	log.Print("服务器启动")
+	log.Info().Msg("服务器启动")
 	http.ListenAndServe(fmt.Sprintf("%s:%d", *host, *port), nil)
 }
