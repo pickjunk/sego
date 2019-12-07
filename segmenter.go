@@ -1,4 +1,3 @@
-//Go中文分词
 package sego
 
 import (
@@ -23,7 +22,7 @@ const (
 	wordOther = iota
 )
 
-// 分词器结构体
+// Segmenter 分词器结构体
 type Segmenter struct {
 	dict *Dictionary
 }
@@ -34,12 +33,12 @@ type jumper struct {
 	token       *Token
 }
 
-// 返回分词器使用的词典
+// Dictionary 返回分词器使用的词典
 func (seg *Segmenter) Dictionary() *Dictionary {
 	return seg.dict
 }
 
-// 从文件中载入词典
+// LoadDictionary 从文件中载入词典
 //
 // 可以载入多个词典文件，文件名用","分隔，排在前面的词典优先载入分词，比如
 // 	"用户词典.txt,通用词典.txt"
@@ -131,7 +130,7 @@ func (seg *Segmenter) LoadDictionary(files string) {
 	log.Println("sego词典载入完毕")
 }
 
-// 对文本分词
+// Segment 对文本分词
 //
 // 输入参数：
 //	bytes	UTF8文本的字节数组
@@ -142,7 +141,7 @@ func (seg *Segmenter) Segment(bytes []byte) []Segment {
 	return seg.internalSegment(bytes, false)
 }
 
-
+// InternalSegment 对文本分词
 func (seg *Segmenter) InternalSegment(bytes []byte, searchMode bool) []Segment {
 	return seg.internalSegment(bytes, searchMode)
 }

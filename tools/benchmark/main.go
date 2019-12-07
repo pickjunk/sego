@@ -28,7 +28,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/huichen/sego"
+	"github.com/pickjunk/sego"
 	"log"
 	"os"
 	"runtime"
@@ -54,7 +54,7 @@ func main() {
 	t0 := time.Now()
 
 	var segmenter sego.Segmenter
-	segmenter.LoadDictionary("../data/dictionary.txt")
+	segmenter.LoadDictionary("../../data/dictionary.txt")
 
 	// 记录时间
 	t1 := time.Now()
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	// 打开将要分词的文件
-	file, err := os.Open("../testdata/bailuyuan.txt")
+	file, err := os.Open("../../testdata/bailuyuan.txt")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -5,7 +5,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/huichen/sego"
+	"github.com/pickjunk/sego"
 	"log"
 	"os"
 	"runtime"
@@ -32,10 +32,10 @@ func main() {
 	runtime.GOMAXPROCS(numThreads)
 
 	// 载入词典
-	segmenter.LoadDictionary("../data/dictionary.txt")
+	segmenter.LoadDictionary("../../data/dictionary.txt")
 
 	// 打开将要分词的文件
-	file, err := os.Open("../testdata/bailuyuan.txt")
+	file, err := os.Open("../../testdata/bailuyuan.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
