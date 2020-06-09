@@ -75,3 +75,11 @@ func TestLargeDictionary(t *testing.T) {
 	expect(t, "中华/nz 人民/n 共和/nz 国/n 共和国/ns 人民共和国/nt 中华人民共和国/ns 中央/n 人民/n 政府/n 人民政府/nt 中央人民政府/nt 中华人民共和国中央人民政府/nt ", SegmentsToString(prodSeg.Segment(
 		[]byte("中华人民共和国中央人民政府")), true))
 }
+
+func TestPhrase(t *testing.T) {
+	var seg Segmenter
+	seg.LoadDictionary("testdata/test_dict3.txt")
+	expect(t, "3", seg.dict.NumTokens())
+	segments := seg.Segment([]byte("hello hello world world"))
+	expect(t, "hello/p2  /x hello world/p1  /x world/p3 ", SegmentsToString(segments, false))
+}
