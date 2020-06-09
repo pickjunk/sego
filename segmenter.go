@@ -2,9 +2,9 @@ package sego
 
 import (
 	"bufio"
-	"fmt"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -16,9 +16,9 @@ const (
 )
 
 const (
-	wordAlpha = iota
+	wordAlpha  = iota
 	wordNumber = iota
-	wordOther = iota
+	wordOther  = iota
 )
 
 // Segmenter 分词器结构体
@@ -63,18 +63,42 @@ func (seg *Segmenter) LoadDictionary(files string) {
 
 		// 逐行读入分词
 		for {
-			size, _ := fmt.Fscanln(reader, &text, &freqText, &pos)
-
-			if size == 0 {
-				// 文件结束
-				break
-			} else if size < 2 {
-				// 无效行
-				continue
-			} else if size == 2 {
-				// 没有词性标注时设为空字符串
-				pos = ""
+			line, eof := reader.ReadString('\n')
+			if eof == nil {
+				// 清除末尾的'\n'
+				line = line[:len(line)-1]
 			}
+
+			slices := strings.Split(strings.Trim(line, " "), " ")
+			l := len(slices)
+
+			// 最后一个元素为数字（词频）
+			if regexp.MustCompile("^\\d+$").MatchString(slices[l-1]) {
+				// 格式：[词] [词频]，至少要有两个元素
+				if l < 2 {
+					break
+				}
+
+				text = strings.Join(slices[:l-1], " ")
+				freqText = slices[l-1]
+				pos = ""
+			} else {
+				// 格式：[词] [词频] [词性]，至少要有三个元素
+				if l < 3 {
+					break
+				}
+
+				text = strings.Join(slices[:l-2], " ")
+				freqText = slices[l-2]
+				pos = slices[l-1]
+			}
+
+			// 词为空，无效行
+			if text == "" {
+				break
+			}
+
+			// log.Info().Str("text", text).Str("freq", freqText).Str("pos", pos).Send()
 
 			// 解析词频
 			var err error
@@ -92,6 +116,11 @@ func (seg *Segmenter) LoadDictionary(files string) {
 			words := splitTextToWords([]byte(text))
 			token := Token{text: words, frequency: frequency, pos: pos}
 			seg.dict.addToken(token)
+
+			// 文件结束
+			if eof != nil {
+				break
+			}
 		}
 	}
 
