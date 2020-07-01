@@ -1,5 +1,7 @@
 package sego
 
+import "strings"
+
 // Text 字串类型，可以用来表达
 //	1. 一个字元，比如"中"又如"国", 英文的一个字元是一个词
 //	2. 一个分词，比如"中国"又如"人口"
@@ -24,6 +26,9 @@ type Token struct {
 
 	// 该分词文本的进一步分词划分，见Segments函数注释。
 	segments []*Segment
+
+	// 该分词的同义词
+	synonyms []*Token
 }
 
 // Text 返回分词文本
@@ -47,6 +52,20 @@ func (token *Token) Pos() string {
 // 用于搜索引擎对一段文本进行全文搜索。
 func (token *Token) Segments() []*Segment {
 	return token.segments
+}
+
+// Synonyms 该分词的同义词
+func (token *Token) Synonyms() []*Token {
+	return token.synonyms
+}
+
+// SynonymsText 该分词的同义词文本
+func (token *Token) SynonymsText() string {
+	var text []string
+	for _, synonym := range token.synonyms {
+		text = append(text, synonym.Text())
+	}
+	return strings.Join(text, " ")
 }
 
 // TextEquals 检测分词文本是否等于
