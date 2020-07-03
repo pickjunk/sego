@@ -92,6 +92,8 @@ func (seg *Segmenter) LoadDictionary(files string) {
 					}
 
 					text = strings.Join(slices[:l-2], " ")
+					// 特殊符号转义
+					text = strings.Replace(text, "__VERTICAL_BAR__", "|", -1)
 					freqText = slices[l-2]
 					pos = slices[l-1]
 				}
@@ -100,8 +102,6 @@ func (seg *Segmenter) LoadDictionary(files string) {
 				if text == "" {
 					break
 				}
-
-				// log.Info().Str("text", text).Str("freq", freqText).Str("pos", pos).Send()
 
 				// 解析词频
 				var err error
@@ -149,11 +149,9 @@ func (seg *Segmenter) LoadDictionary(files string) {
 	for i := range seg.dict.tokens {
 		token := seg.dict.tokens[i]
 
-		// log.Info().Str("text", token.Text()).Send()
 		// 子分词
 		segments := seg.segmentWords(token.text, true)
 		for i := 0; i < len(segments); i++ {
-			// log.Info().Str("segment", segments[i].token.Text()).Send()
 			token.segments = append(token.segments, &segments[i])
 		}
 
@@ -203,12 +201,10 @@ func (seg *Segmenter) LoadDictionary(files string) {
 			token.synonyms = synonyms
 
 			for i, t := range token.synonyms {
-				// log.Info().Str("text", t.Text()).Send()
 				// 子分词
 				segments := seg.segmentWords(t.text, true)
 				for i := 0; i < len(segments); i++ {
 					t.segments = append(t.segments, &segments[i])
-					// log.Info().Str("segment", segments[i].token.Text()).Send()
 				}
 
 				// 同义词的同义词
@@ -234,6 +230,22 @@ func (seg *Segmenter) LoadDictionary(files string) {
 //	[]Segment	划分的分词
 func (seg *Segmenter) Segment(bytes []byte) []Segment {
 	return seg.internalSegment(bytes, false)
+}
+
+// FullSegment 对文本进行全分词
+//
+// 输入参数：
+//	bytes	UTF8文本的字节数组
+//
+// 输出：
+//	[]Segment	划分的分词
+func (seg *Segmenter) FullSegment(bytes []byte) []Segment {
+	segments := seg.internalSegment(bytes, false)
+
+	// 分词扩展，扩展出子分词、同义词
+	segments = SegmentsSpread(segments)
+
+	return segments
 }
 
 // InternalSegment 对文本分词
@@ -317,7 +329,16 @@ func (seg *Segmenter) segmentWords(text []Text, searchMode bool) []Segment {
 		bytePosition += textSliceByteLength(outputSegments[iSeg].token.text)
 		outputSegments[iSeg].end = bytePosition
 	}
-	return outputSegments
+
+	// 过滤停止词
+	var resultSegments []Segment
+	for _, segment := range outputSegments {
+		if segment.Token().Pos() != "__STOP__" {
+			resultSegments = append(resultSegments, segment)
+		}
+	}
+
+	return resultSegments
 }
 
 // 更新跳转信息:

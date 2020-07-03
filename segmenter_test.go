@@ -43,7 +43,7 @@ func TestSegment(t *testing.T) {
 	seg.LoadDictionary("testdata/test_dict1.txt,testdata/test_dict2.txt")
 	expect(t, "12", seg.dict.NumTokens())
 	segments := seg.Segment([]byte("中国有十三亿人口"))
-	expect(t, "中国/ 有/p3 十三亿/ 人口/p12 ", SegmentsToString(segments, false))
+	expect(t, "中国/ 有/p3 十三亿/ 人口/p12 ", SegmentsToString(segments))
 	expect(t, "4", len(segments))
 	expect(t, "0", segments[0].start)
 	expect(t, "6", segments[0].end)
@@ -58,22 +58,22 @@ func TestSegment(t *testing.T) {
 func TestLargeDictionary(t *testing.T) {
 	prodSeg.LoadDictionary("data/dictionary.txt")
 	expect(t, "中国/ns 人口/n ", SegmentsToString(prodSeg.Segment(
-		[]byte("中国人口")), false))
+		[]byte("中国人口"))))
 
 	expect(t, "中国/ns 人口/n ", SegmentsToString(prodSeg.internalSegment(
-		[]byte("中国人口"), false), false))
+		[]byte("中国人口"), false)))
 
 	expect(t, "中国/ns 人口/n ", SegmentsToString(prodSeg.internalSegment(
-		[]byte("中国人口"), true), false))
+		[]byte("中国人口"), true)))
 
 	expect(t, "中华人民共和国/ns 中央人民政府/nt ", SegmentsToString(prodSeg.internalSegment(
-		[]byte("中华人民共和国中央人民政府"), true), false))
+		[]byte("中华人民共和国中央人民政府"), true)))
 
 	expect(t, "中华人民共和国中央人民政府/nt ", SegmentsToString(prodSeg.internalSegment(
-		[]byte("中华人民共和国中央人民政府"), false), false))
+		[]byte("中华人民共和国中央人民政府"), false)))
 
-	expect(t, "中/f 华/ns 中华/nz 人/n 民/ng 人民/n 共/d 和/c 共和/nz 国/n 共和国/ns 人民共和国/nt 中华人民共和国/ns 中/f 央/j 中央/n 人/n 民/ng 人民/n 政/n 府/nr 政府/n 人民政府/nt 中央人民政府/nt 中华人民共和国中央人民政府/nt ", SegmentsToString(prodSeg.Segment(
-		[]byte("中华人民共和国中央人民政府")), true))
+	expect(t, "中/f 华/ns 中华/nz 人/n 民/ng 人民/n 共/d 和/c 共和/nz 国/n 共和国/ns 人民共和国/nt 中华人民共和国/ns 中/f 央/j 中央/n 人/n 民/ng 人民/n 政/n 府/nr 政府/n 人民政府/nt 中央人民政府/nt 中华人民共和国中央人民政府/nt ", SegmentsToString(prodSeg.FullSegment(
+		[]byte("中华人民共和国中央人民政府"))))
 }
 
 func TestPhraseAndSynonyms(t *testing.T) {
@@ -82,11 +82,11 @@ func TestPhraseAndSynonyms(t *testing.T) {
 	expect(t, "7", seg.dict.NumTokens())
 
 	segments := seg.Segment([]byte("hello hello world world"))
-	expect(t, "hello/p2 hello world/p1 world/p3 ", SegmentsToString(segments, false))
+	expect(t, "hello/p2 hello world/p1 world/p3 ", SegmentsToString(segments))
 	segments = seg.Segment([]byte("hello hi world world"))
-	expect(t, "hello/p2 hi world/p1 world/p3 ", SegmentsToString(segments, false))
+	expect(t, "hello/p2 hi world/p1 world/p3 ", SegmentsToString(segments))
 	segments = seg.Segment([]byte("hello hoho world world"))
-	expect(t, "hello/p2 hoho world/p1 world/p3 ", SegmentsToString(segments, false))
+	expect(t, "hello/p2 hoho world/p1 world/p3 ", SegmentsToString(segments))
 
 	for _, segment := range segments {
 		switch segment.token.Text() {
@@ -99,6 +99,15 @@ func TestPhraseAndSynonyms(t *testing.T) {
 		}
 	}
 
-	segments = seg.Segment([]byte("hello hello world abc world"))
-	expect(t, "hello/p2 hello/p2 world/p3 hello world/p1 abc/x world/p3 ", SegmentsToString(segments, true))
+	segments = seg.FullSegment([]byte("hello hello world abc world"))
+	expect(t, "hi/p2 hoho/p2 hello/p2 hi/p2 hoho/p2 hello/p2 world/p3 hi world/p1 hoho world/p1 hello world/p1 abc/x world/p3 ", SegmentsToString(segments))
+}
+
+func TestStopword(t *testing.T) {
+	var seg Segmenter
+	seg.LoadDictionary("testdata/test_dict4.txt")
+	expect(t, "4", seg.dict.NumTokens())
+
+	segments := seg.Segment([]byte("hello | hello world | world"))
+	expect(t, "hello world/p1 ", SegmentsToString(segments))
 }
