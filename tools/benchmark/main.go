@@ -28,11 +28,12 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/pickjunk/sego"
 	"os"
 	"runtime"
 	"runtime/pprof"
 	"time"
+
+	"github.com/pickjunk/sego"
 )
 
 var (
@@ -116,7 +117,7 @@ func main() {
 		for _, l := range lines {
 			segments := segmenter.Segment(l)
 			if *output != "" {
-				of.WriteString(sego.SegmentsToString(segments, false))
+				of.WriteString(sego.SegmentsToString(segments))
 				of.WriteString("\n")
 			}
 		}

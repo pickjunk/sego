@@ -1,0 +1,4 @@
+hello world 4 p1
+hello 2 __STOP__
+world 2 __STOP__
+__VERTICAL_BAR__ 2 __STOP__

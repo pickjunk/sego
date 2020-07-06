@@ -69,53 +69,67 @@ func (seg *Segmenter) LoadDictionary(files string) {
 				line = line[:len(line)-1]
 			}
 
-			slices := strings.Split(strings.Trim(line, " "), " ")
-			l := len(slices)
+			pieces := strings.Split(strings.Trim(line, " "), "|")
+			var synonyms []*Token
+			for _, piece := range pieces {
+				slices := strings.Split(strings.Trim(piece, " "), " ")
+				l := len(slices)
 
-			// 最后一个元素为数字（词频）
-			if regexp.MustCompile("^\\d+$").MatchString(slices[l-1]) {
-				// 格式：[词] [词频]，至少要有两个元素
-				if l < 2 {
+				// 最后一个元素为数字（词频）
+				if regexp.MustCompile("^\\d+$").MatchString(slices[l-1]) {
+					// 格式：[词] [词频]，至少要有两个元素
+					if l < 2 {
+						break
+					}
+
+					text = strings.Join(slices[:l-1], " ")
+					freqText = slices[l-1]
+					pos = ""
+				} else {
+					// 格式：[词] [词频] [词性]，至少要有三个元素
+					if l < 3 {
+						break
+					}
+
+					text = strings.Join(slices[:l-2], " ")
+					// 特殊符号转义
+					text = strings.Replace(text, "__VERTICAL_BAR__", "|", -1)
+					freqText = slices[l-2]
+					pos = slices[l-1]
+				}
+
+				// 词为空，无效行
+				if text == "" {
 					break
 				}
 
-				text = strings.Join(slices[:l-1], " ")
-				freqText = slices[l-1]
-				pos = ""
-			} else {
-				// 格式：[词] [词频] [词性]，至少要有三个元素
-				if l < 3 {
-					break
+				// 解析词频
+				var err error
+				frequency, err = strconv.Atoi(freqText)
+				if err != nil {
+					continue
 				}
 
-				text = strings.Join(slices[:l-2], " ")
-				freqText = slices[l-2]
-				pos = slices[l-1]
+				// 过滤频率太小的词
+				if frequency < minTokenFrequency {
+					continue
+				}
+
+				words := splitTextToWords([]byte(text))
+				token := Token{text: words, frequency: frequency, pos: pos}
+
+				// 添加到同义词数组
+				synonyms = append(synonyms, &token)
 			}
 
-			// 词为空，无效行
-			if text == "" {
-				break
+			for i, token := range synonyms {
+				token.synonyms = append(token.synonyms, synonyms[:i]...)
+				token.synonyms = append(token.synonyms, synonyms[i+1:]...)
+				// log.Info().Str("synonyms", token.SynonymsText()).Send()
+
+				// 将分词添加到字典中
+				seg.dict.addToken(token)
 			}
-
-			// log.Info().Str("text", text).Str("freq", freqText).Str("pos", pos).Send()
-
-			// 解析词频
-			var err error
-			frequency, err = strconv.Atoi(freqText)
-			if err != nil {
-				continue
-			}
-
-			// 过滤频率太小的词
-			if frequency < minTokenFrequency {
-				continue
-			}
-
-			// 将分词添加到字典中
-			words := splitTextToWords([]byte(text))
-			token := Token{text: words, frequency: frequency, pos: pos}
-			seg.dict.addToken(token)
 
 			// 文件结束
 			if eof != nil {
@@ -127,30 +141,79 @@ func (seg *Segmenter) LoadDictionary(files string) {
 	// 计算每个分词的路径值，路径值含义见Token结构体的注释
 	logTotalFrequency := float32(math.Log2(float64(seg.dict.totalFrequency)))
 	for i := range seg.dict.tokens {
-		token := &seg.dict.tokens[i]
+		token := seg.dict.tokens[i]
 		token.distance = logTotalFrequency - float32(math.Log2(float64(token.frequency)))
 	}
 
 	// 对每个分词进行细致划分，用于搜索引擎模式，该模式用法见Token结构体的注释。
 	for i := range seg.dict.tokens {
-		token := &seg.dict.tokens[i]
+		token := seg.dict.tokens[i]
+
+		// 子分词
 		segments := seg.segmentWords(token.text, true)
-
-		// 计算需要添加的子分词数目
-		numTokensToAdd := 0
-		for iToken := 0; iToken < len(segments); iToken++ {
-			if len(segments[iToken].token.text) > 0 {
-				numTokensToAdd++
-			}
+		for i := 0; i < len(segments); i++ {
+			token.segments = append(token.segments, &segments[i])
 		}
-		token.segments = make([]*Segment, numTokensToAdd)
 
-		// 添加子分词
-		iSegmentsToAdd := 0
-		for iToken := 0; iToken < len(segments); iToken++ {
-			if len(segments[iToken].token.text) > 0 {
-				token.segments[iSegmentsToAdd] = &segments[iToken]
-				iSegmentsToAdd++
+		// 找出所有子分词的同义词，按笛卡尔积算出该词的所有同义词
+		synonyms := []*Token{
+			{
+				frequency: token.frequency,
+				distance:  token.distance,
+				pos:       token.pos,
+			},
+		}
+		hasSynonyms := false
+		for _, segment := range token.segments {
+			var cartesian []*Token
+
+			for _, a := range synonyms {
+				if len(segment.token.synonyms) > 0 {
+					hasSynonyms = true
+					for _, b := range segment.token.synonyms {
+						var text []Text
+						text = append(text, a.text...)
+						text = append(text, b.text...)
+						cartesian = append(cartesian, &Token{
+							text:      text,
+							frequency: a.frequency,
+							distance:  a.distance,
+							pos:       a.pos,
+						})
+					}
+				} else {
+					var text []Text
+					text = append(text, a.text...)
+					text = append(text, segment.token.text...)
+					cartesian = append(cartesian, &Token{
+						text:      text,
+						frequency: a.frequency,
+						distance:  a.distance,
+						pos:       a.pos,
+					})
+				}
+			}
+
+			synonyms = cartesian
+		}
+
+		if hasSynonyms {
+			token.synonyms = synonyms
+
+			for i, t := range token.synonyms {
+				// 子分词
+				segments := seg.segmentWords(t.text, true)
+				for i := 0; i < len(segments); i++ {
+					t.segments = append(t.segments, &segments[i])
+				}
+
+				// 同义词的同义词
+				t.synonyms = append(t.synonyms, token)
+				t.synonyms = append(t.synonyms, synonyms[:i]...)
+				t.synonyms = append(t.synonyms, synonyms[i+1:]...)
+
+				// 添加同义词到词库
+				seg.dict.addToken(t)
 			}
 		}
 	}
@@ -167,6 +230,22 @@ func (seg *Segmenter) LoadDictionary(files string) {
 //	[]Segment	划分的分词
 func (seg *Segmenter) Segment(bytes []byte) []Segment {
 	return seg.internalSegment(bytes, false)
+}
+
+// FullSegment 对文本进行全分词
+//
+// 输入参数：
+//	bytes	UTF8文本的字节数组
+//
+// 输出：
+//	[]Segment	划分的分词
+func (seg *Segmenter) FullSegment(bytes []byte) []Segment {
+	segments := seg.internalSegment(bytes, false)
+
+	// 分词扩展，扩展出子分词、同义词
+	segments = SegmentsSpread(segments)
+
+	return segments
 }
 
 // InternalSegment 对文本分词
@@ -250,7 +329,16 @@ func (seg *Segmenter) segmentWords(text []Text, searchMode bool) []Segment {
 		bytePosition += textSliceByteLength(outputSegments[iSeg].token.text)
 		outputSegments[iSeg].end = bytePosition
 	}
-	return outputSegments
+
+	// 过滤停止词
+	var resultSegments []Segment
+	for _, segment := range outputSegments {
+		if segment.Token().Pos() != "__STOP__" {
+			resultSegments = append(resultSegments, segment)
+		}
+	}
+
+	return resultSegments
 }
 
 // 更新跳转信息:
@@ -304,7 +392,9 @@ func splitTextToWords(text Text) []Text {
 				if preWordType == wordAlpha {
 					word = toLower(word)
 				}
-				output = append(output, word)
+				if string(word) != " " {
+					output = append(output, word)
+				}
 			}
 
 			preWordType = curWordType
@@ -320,7 +410,9 @@ func splitTextToWords(text Text) []Text {
 		if preWordType == wordAlpha {
 			word = toLower(word)
 		}
-		output = append(output, word)
+		if string(word) != " " {
+			output = append(output, word)
+		}
 	}
 
 	return output

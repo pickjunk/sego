@@ -6,7 +6,7 @@ import "github.com/adamzy/cedar-go"
 type Dictionary struct {
 	trie           *cedar.Cedar // Cedar 前缀树
 	maxTokenLength int          // 词典中最长的分词
-	tokens         []Token      // 词典中所有的分词，方便遍历
+	tokens         []*Token     // 词典中所有的分词，方便遍历
 	totalFrequency int64        // 词典中所有分词的频率之和
 }
 
@@ -31,7 +31,7 @@ func (dict *Dictionary) TotalFrequency() int64 {
 }
 
 // 向词典中加入一个分词
-func (dict *Dictionary) addToken(token Token) {
+func (dict *Dictionary) addToken(token *Token) {
 	bytes := textSliceToBytes(token.text)
 	_, err := dict.trie.Get(bytes)
 	if err == nil {
@@ -58,7 +58,7 @@ func (dict *Dictionary) lookupTokens(words []Text, tokens []*Token) (numOfTokens
 		}
 		value, err = dict.trie.Value(id)
 		if err == nil {
-			tokens[numOfTokens] = &dict.tokens[value]
+			tokens[numOfTokens] = dict.tokens[value]
 			numOfTokens++
 		}
 	}

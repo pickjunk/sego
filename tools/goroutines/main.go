@@ -5,10 +5,11 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/pickjunk/sego"
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/pickjunk/sego"
 )
 
 var (
